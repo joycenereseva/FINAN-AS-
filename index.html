@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b5f5a">
+  <title>Controle financeiro</title>
+  <style>
+    /* Mobile primeiro: a tela de referência tem 360px de largura.
+       Botões e abas têm pelo menos 44px de altura para o toque. */
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { margin: 0; }
+    body {
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.4;
+      color: #1c2b2b;
+      background: #e7f0f0;
+    }
+    .pagina {
+      width: min(720px, 100%);
+      margin: 0 auto;
+      padding: 12px 12px 28px;
+    }
+    h1, h2, h3, p { overflow-wrap: break-word; }
+    h1 { margin: 0 0 4px; font-size: 1.45rem; }
+    h2 { margin: 0 0 8px; font-size: 1.2rem; }
+    h3 { margin: 16px 0 8px; font-size: 1.05rem; }
+    .subtitulo { margin: 0 0 12px; color: #3d5252; }
+    button, input, select, label { touch-action: manipulation; }
+    button, input[type="text"], input[type="date"], select {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      min-height: 44px;
+      font: inherit;
+    }
+    button {
+      padding: 10px 14px;
+      font-weight: 700;
+      color: #fff;
+      background: #0b5f5a;
+      border: 1px solid #0b5f5a;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button.secundario, .abas button {
+      color: #1c2b2b;
+      background: #fff;
+      border-color: #8aa3a3;
+    }
+    button.perigo {
+      color: #8f1d1d;
+      background: #fff;
+      border-color: #8f1d1d;
+    }
+    .abas button.ativa {
+      color: #fff;
+      background: #0b5f5a;
+      border-color: #0b5f5a;
+    }
+    input, select {
+      padding: 8px 10px;
+      color: #1c2b2b;
+      background: #fff;
+      border: 1px solid #8aa3a3;
+      border-radius: 10px;
+    }
+    :focus-visible {
+      outline: 3px solid #0b5f5a;
+      outline-offset: 2px;
+    }
+    .mes-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+    .mes-nav p {
+      grid-column: 1 / -1;
+      order: -1;
+      margin: 0;
+      text-align: center;
+      font-weight: 700;
+    }
+    .abas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .abas button:last-child { grid-column: 1 / -1; }
+    section {
+      margin-top: 12px;
+      padding: 16px;
+      background: #fff;
+      border: 1px solid #d3e0e0;
+      border-radius: 12px;
+    }
+    label { display: block; margin: 14px 0 6px; font-weight: 700; }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 44px;
+      margin-top: 12px;
+    }
+    .meses {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .meses label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      margin: 0;
+      padding: 8px;
+      border: 1px solid #d3e0e0;
+      border-radius: 10px;
+    }
+    input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      min-height: 22px;
+      margin: 0;
+    }
+    form button, .acoes { margin-top: 12px; }
+    .acoes { display: grid; gap: 8px; }
+    .aviso {
+      margin: 0 0 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #fdecec;
+      color: #8f1d1d;
+    }
+    .aviso.ok { background: #e7f6ee; color: #14663a; }
+    .formula { margin: 8px 0; color: #3d5252; }
+    .conta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px 12px;
+      margin: 0;
+      padding: 10px 0;
+      border-bottom: 1px solid #e2ecec;
+    }
+    .conta strong {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .destaque strong { font-size: 1.3rem; }
+    .negativo { color: #8f1d1d; }
+    .item { padding: 12px 0; border-top: 1px solid #e2ecec; }
+    .item p { margin: 0 0 4px; }
+    .item button { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="pagina">
+    <header>
+      <h1>Controle financeiro</h1>
+      <p class="subtitulo">Natação infantil. Os números ficam só neste navegador.</p>
+      <div class="mes-nav">
+        <button type="button" id="mes-anterior" class="secundario">Anterior</button>
+        <p id="rotulo-mes"></p>
+        <button type="button" id="mes-proximo" class="secundario">Próximo</button>
+      </div>
+    </header>
+
+    <nav class="abas" role="tablist" aria-label="Seções">
+      <button type="button" role="tab" id="aba-resumo" aria-controls="painel-resumo" aria-selected="true">Resumo</button>
+      <button type="button" role="tab" id="aba-lancar" aria-controls="painel-lancar" aria-selected="false">Lançar</button>
+      <button type="button" role="tab" id="aba-sazonal" aria-controls="painel-sazonal" aria-selected="false">Sazonal</button>
+      <button type="button" role="tab" id="aba-simular" aria-controls="painel-simular" aria-selected="false">Simular</button>
+      <button type="button" role="tab" id="aba-ajustes" aria-controls="painel-ajustes" aria-selected="false">Ajustes</button>
+    </nav>
+
+    <main>
+      <section id="painel-resumo" role="tabpanel">
+        <h2>Resumo</h2>
+        <div id="resumo-conteudo"></div>
+      </section>
+
+      <section id="painel-lancar" role="tabpanel" hidden>
+        <h2>Lançar</h2>
+        <p id="aviso-lancar" class="aviso" role="alert" hidden></p>
+        <form id="form-lancar" novalidate>
+          <label for="data">Data</label>
+          <input id="data" type="date" autocomplete="off">
+
+          <label for="tipo">Tipo</label>
+          <select id="tipo">
+            <option value="entrada">Entrada</option>
+            <option value="fixo">Custo fixo</option>
+            <option value="variavel">Custo variável</option>
+          </select>
+
+          <label for="valor">Valor</label>
+          <input id="valor" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00">
+
+          <label for="descricao">Descrição (opcional)</label>
+          <input id="descricao" type="text" maxlength="80" autocomplete="off">
+
+          <label class="check" for="repetir">
+            <input id="repetir" type="checkbox">
+            Repetir todo mês
+          </label>
+          <div id="bloco-repetir" hidden>
+            <label for="meses-repetir">Quantidade de meses, contando o primeiro</label>
+            <input id="meses-repetir" type="text" inputmode="numeric" autocomplete="off">
+            <p class="formula">Se o dia não existir naquele mês, o lançamento fica no último dia. O mês não é pulado, e os meses seguintes continuam com o dia original.</p>
+          </div>
+          <button type="submit">Lançar</button>
+        </form>
+        <h3>Lançamentos deste mês</h3>
+        <div id="lista-lancamentos"></div>
+      </section>
+
+      <section id="painel-sazonal" role="tabpanel" hidden>
+        <h2>Sazonal</h2>
+        <div id="sazonal-conteudo"></div>
+      </section>
+
+      <section id="painel-simular" role="tabpanel" hidden>
+        <h2>Simular</h2>
+        <p>Nada aqui é gravado. A conta usa o mês selecionado lá em cima.</p>
+
+        <h3>Compra parcelada</h3>
+        <p id="aviso-compra" class="aviso" role="alert" hidden></p>
+        <form id="form-compra" novalidate>
+          <label for="compra-valor">Valor total</label>
+          <input id="compra-valor" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00">
+          <label for="compra-parcelas">Número de parcelas</label>
+          <input id="compra-parcelas" type="text" inputmode="numeric" autocomplete="off">
+          <button type="submit">Simular compra</button>
+        </form>
+        <div id="resultado-compra"></div>
+
+        <h3>Saída de alunos</h3>
+        <p id="aviso-saida" class="aviso" role="alert" hidden></p>
+        <form id="form-saida" novalidate>
+          <label for="saida-alunos">Número de alunos</label>
+          <input id="saida-alunos" type="text" inputmode="numeric" autocomplete="off">
+          <button type="submit">Simular saída</button>
+        </form>
+        <div id="resultado-saida"></div>
+      </section>
+
+      <section id="painel-ajustes" role="tabpanel" hidden>
+        <h2>Ajustes</h2>
+        <p id="aviso-ajustes" class="aviso" role="alert" hidden></p>
+        <form id="form-ajustes" novalidate>
+          <label for="reserva">Reserva mensal</label>
+          <input id="reserva" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00">
+
+          <label for="meta">Meta de investimento</label>
+          <input id="meta" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00">
+
+          <label for="valor-aluno">Valor médio por aluno</label>
+          <input id="valor-aluno" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00">
+
+          <label for="salario-alvo">Salário-alvo mensal</label>
+          <input id="salario-alvo" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00">
+
+          <p class="formula">Meses de inverno. O padrão é junho, julho e agosto.</p>
+          <div class="meses">
+            <label><input type="checkbox" name="inverno" value="1"> Janeiro</label>
+            <label><input type="checkbox" name="inverno" value="2"> Fevereiro</label>
+            <label><input type="checkbox" name="inverno" value="3"> Março</label>
+            <label><input type="checkbox" name="inverno" value="4"> Abril</label>
+            <label><input type="checkbox" name="inverno" value="5"> Maio</label>
+            <label><input type="checkbox" name="inverno" value="6"> Junho</label>
+            <label><input type="checkbox" name="inverno" value="7"> Julho</label>
+            <label><input type="checkbox" name="inverno" value="8"> Agosto</label>
+            <label><input type="checkbox" name="inverno" value="9"> Setembro</label>
+            <label><input type="checkbox" name="inverno" value="10"> Outubro</label>
+            <label><input type="checkbox" name="inverno" value="11"> Novembro</label>
+            <label><input type="checkbox" name="inverno" value="12"> Dezembro</label>
+          </div>
+          <button type="submit">Salvar ajustes</button>
+        </form>
+        <div class="acoes">
+          <button type="button" id="baixar-backup">Baixar backup</button>
+          <button type="button" id="restaurar-backup" class="secundario">Restaurar backup</button>
+          <button type="button" id="apagar-dados" class="perigo">Apagar dados deste navegador</button>
+          <input id="arquivo-backup" type="file" accept="application/json,.json" hidden>
+        </div>
+        <p class="formula">O backup é um arquivo JSON neste computador. O site não envia esses dados. Para guardar o arquivo no GitHub, use outro repositório, privado, sem ligar os dois.</p>
+      </section>
+    </main>
+  </div>
+  <noscript><p>Este controle precisa do JavaScript do navegador.</p></noscript>
+
+  <script>
+    /*
+      Fórmulas, com os nomes usados na tela.
+
+      Sobra do mês = entradas − custos fixos − custos variáveis.
+      Pode investir = max(0, sobra − reserva mensal).
+
+      Mês sem nenhum lançamento não vale zero. Ele fica fora das
+      médias. A divisão usa a quantidade de meses com lançamento.
+      Se essa quantidade é zero, a média não existe e a tela avisa.
+
+      Previsão de uma estação = média da receita dos últimos 3 meses
+      com dados dessa estação. Se houver menos de 3, usa os que existem.
+      Mês de inverno usa a média de inverno. Os outros meses usam a
+      média de fora do inverno.
+
+      Média de inverno da receita necessária = média da receita de
+      todos os meses de inverno que têm dados, não só os 3 últimos.
+
+      Receita necessária fora do inverno =
+        (salário-alvo × 12 − média de inverno × nº de meses de inverno)
+        / (12 − nº de meses de inverno).
+      O nº de meses de inverno é quantos meses estão marcados, não
+      quantos já têm lançamento. Se os 12 estiverem marcados, o
+      divisor é zero e a conta não é feita.
+
+      Saída de alunos:
+        perda = alunos × valor médio por aluno
+        nova sobra = sobra do mês − perda
+        corte necessário = (reserva + meta de investimento) − nova sobra
+      O corte é comparado com a média dos custos variáveis dos meses
+      que têm dados. Não há porcentagem, para não dividir por zero
+      quando essa média não existe.
+
+      Compra parcelada:
+        parcela = valor total / número de parcelas
+        nova sobra = sobra do mês − parcela
+      O número de parcelas tem de ser inteiro, de 1 até 120.
+
+      Recorrência: o dia 29, 30 ou 31 é aplicado de novo em cada mês
+      e limitado ao último dia real daquele mês. Não usamos setMonth,
+      porque ele empurra 31 de janeiro para março e pula fevereiro.
+      Fevereiro curto não muda o dia de março.
+    */
+
+    const CHAVE = "controle-financeiro-natacao";
+    const ABAS = ["resumo", "lancar", "sazonal", "simular", "ajustes"];
+    const NOMES_MES = [
+      "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+      "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+    ];
+    const TIPOS = ["entrada", "fixo", "variavel"];
+
+    let estado = estadoInicial();
+    let mesVisivel = "";
+    let compraAtual = null;
+    let saidaAtual = null;
+
+    function estadoInicial() {
+      return {
+        lancamentos: [],
+        ajustes: {
+          reserva: 0,
+          metaInvestimento: 0,
+          valorAluno: 0,
+          salarioAlvo: 0,
+          mesesInverno: [6, 7, 8]
+        }
+      };
+    }
+
+    function hojeISO() {
+      const partes = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
+      const mapa = {};
+      for (const parte of partes) mapa[parte.type] = parte.value;
+      return `${mapa.year}-${mapa.month}-${mapa.day}`;
+    }
+
+    function partesAnoMes(anoMes) {
+      const [ano, mes] = anoMes.split("-").map(Number);
+      return { ano, mes };
+    }
+
+    function partesData(iso) {
+      const [ano, mes, dia] = iso.split("-").map(Number);
+      return { ano, mes, dia };
+    }
+
+    function chaveMes(ano, mes) {
+      return `${ano}-${String(mes).padStart(2, "0")}`;
+    }
+
+    function rotuloMes(anoMes) {
+      const { ano, mes } = partesAnoMes(anoMes);
+      return `${NOMES_MES[mes - 1]} de ${ano}`;
+    }
+
+    function dataBR(iso) {
+      const { ano, mes, dia } = partesData(iso);
+      return `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${ano}`;
+    }
+
+    /* O construtor new Date(ano, mes, 0) devolve o último dia do mês
+       pedido (mes vai de 1 a 12). Não lemos a data por texto, porque
+       "2026-01-31" em fuso negativo viraria o dia 30. */
+    function ultimoDia(ano, mes) {
+      return new Date(ano, mes, 0).getDate();
+    }
+
+    function deslocarMes(ano, mes, delta) {
+      const indice = ano * 12 + (mes - 1) + delta;
+      const novoAno = Math.floor(indice / 12);
+      const novoMes = ((indice % 12) + 12) % 12;
+      return { ano: novoAno, mes: novoMes + 1 };
+    }
+
+    function montarData(ano, mes, diaDesejado) {
+      const dia = Math.min(diaDesejado, ultimoDia(ano, mes));
+      return `${chaveMes(ano, mes)}-${String(dia).padStart(2, "0")}`;
+    }
+
+    function datasMensais(dataInicial, quantidade) {
+      const { ano, mes, dia } = partesData(dataInicial);
+      const datas = [];
+      for (let i = 0; i < quantidade; i += 1) {
+        const alvo = deslocarMes(ano, mes, i);
+        datas.push(montarData(alvo.ano, alvo.mes, dia));
+      }
+      return datas;
+    }
+
+    function centavos(valor) {
+      const sinal = valor < 0 ? -1 : 1;
+      return sinal * Math.round(Math.abs(valor) * 100) / 100;
+    }
+
+    function formatarMoeda(valor) {
+      const negativo = valor < 0;
+      const absoluto = Math.abs(centavos(valor));
+      const [inteiro, frac] = absoluto.toFixed(2).split(".");
+      const comMilhar = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      return `${negativo ? "-" : ""}R$ ${comMilhar},${frac}`;
+    }
+
+    function numeroParaCampo(valor) {
+      return centavos(valor).toFixed(2).replace(".", ",");
+    }
+
+    /* Aceita 1200, 1200,50 e 1.200,50. "1.200" é mil e duzentos.
+       "1.50" é um real e cinquenta. Vazio e negativo são recusados. */
+    function interpretarNumero(texto) {
+      const limpo = texto.trim().replace(/\s/g, "");
+      if (limpo === "") return { erro: "Preencha o valor." };
+      if (limpo.startsWith("-")) return { erro: "Não use valores negativos." };
+      let normalizado = limpo;
+      const temVirgula = limpo.includes(",");
+      const temPonto = limpo.includes(".");
+      if (temVirgula && temPonto) {
+        if (limpo.lastIndexOf(",") > limpo.lastIndexOf(".")) {
+          normalizado = limpo.replace(/\./g, "").replace(",", ".");
+        } else {
+          normalizado = limpo.replace(/,/g, "");
+        }
+      } else if (temVirgula) {
+        normalizado = limpo.replace(",", ".");
+      } else if (temPonto && /^\d{1,3}(\.\d{3})+$/.test(limpo)) {
+        normalizado = limpo.replace(/\./g, "");
+      }
+      if (!/^\d+(\.\d+)?$/.test(normalizado)) return { erro: "Valor inválido." };
+      const n = Number(normalizado);
+      if (!Number.isFinite(n) || n < 0) return { erro: "Valor inválido." };
+      if (n > 1000000000) return { erro: "Valor grande demais." };
+      return { valor: centavos(n) };
+    }
+
+    function interpretarInteiro(texto, minimo, maximo) {
+      const limpo = texto.trim();
+      if (limpo === "") return { erro: "Preencha o valor." };
+      if (limpo.startsWith("-")) return { erro: "Não use valores negativos." };
+      if (!/^\d+$/.test(limpo)) return { erro: "Use um número inteiro." };
+      const n = Number(limpo);
+      if (n < minimo) return { erro: `Use um número a partir de ${minimo}.` };
+      if (n > maximo) return { erro: `Use no máximo ${maximo}.` };
+      return { valor: n };
+    }
+
+    function lerCampoNumero(id) {
+      const campo = document.getElementById(id);
+      const lido = interpretarNumero(campo.value);
+      if (lido.erro) campo.setAttribute("aria-invalid", "true");
+      else campo.removeAttribute("aria-invalid");
+      return lido;
+    }
+
+    function lerData(id) {
+      const campo = document.getElementById(id);
+      const valor = campo.value.trim();
+      if (valor === "") {
+        campo.setAttribute("aria-invalid", "true");
+        return { erro: "Preencha a data." };
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+        campo.setAttribute("aria-invalid", "true");
+        return { erro: "Data inválida." };
+      }
+      const { ano, mes, dia } = partesData(valor);
+      if (mes < 1 || mes > 12 || dia < 1 || dia > ultimoDia(ano, mes)) {
+        campo.setAttribute("aria-invalid", "true");
+        return { erro: "Data inválida." };
+      }
+      campo.removeAttribute("aria-invalid");
+      return { valor };
+    }
+
+    function carregar() {
+      try {
+        const texto = localStorage.getItem(CHAVE);
+        if (!texto) return estadoInicial();
+        const validado = validarBackup(JSON.parse(texto));
+        if (validado.erro) return estadoInicial();
+        return validado.estado;
+      } catch (erro) {
+        return estadoInicial();
+      }
+    }
+
+    function salvar() {
+      const backup = montarBackup();
+      localStorage.setItem(CHAVE, JSON.stringify(backup));
+    }
+
+    function montarBackup() {
+      return {
+        versao: 1,
+        lancamentos: estado.lancamentos.map(item => ({
+          id: item.id,
+          data: item.data,
+          tipo: item.tipo,
+          valor: item.valor,
+          descricao: item.descricao
+        })),
+        ajustes: {
+          reserva: estado.ajustes.reserva,
+          metaInvestimento: estado.ajustes.metaInvestimento,
+          valorAluno: estado.ajustes.valorAluno,
+          salarioAlvo: estado.ajustes.salarioAlvo,
+          mesesInverno: estado.ajustes.mesesInverno.slice()
+        }
+      };
+    }
+
+    function validarBackup(dado) {
+      if (!dado || typeof dado !== "object" || dado.versao !== 1) {
+        return { erro: "Este arquivo não é um backup desta página." };
+      }
+      if (!Array.isArray(dado.lancamentos) || !dado.ajustes) {
+        return { erro: "O backup está incompleto." };
+      }
+      if (dado.lancamentos.length > 5000) {
+        return { erro: "O backup tem lançamentos demais." };
+      }
+      const meses = lerMesesValidos(dado.ajustes.mesesInverno);
+      if (!meses) return { erro: "Os meses de inverno do backup são inválidos." };
+      const numeros = ["reserva", "metaInvestimento", "valorAluno", "salarioAlvo"];
+      const ajustes = { mesesInverno: meses };
+      for (const chave of numeros) {
+        const valor = dado.ajustes[chave];
+        if (typeof valor !== "number" || !Number.isFinite(valor) || valor < 0 || valor > 1000000000) {
+          return { erro: "O backup tem um ajuste vazio, negativo ou inválido." };
+        }
+        ajustes[chave] = centavos(valor);
+      }
+      const lancamentos = [];
+      const ids = new Set();
+      for (const item of dado.lancamentos) {
+        if (!item || typeof item !== "object") return { erro: "O backup tem um lançamento inválido." };
+        if (typeof item.data !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.data)) {
+          return { erro: "O backup tem uma data inválida." };
+        }
+        const { ano, mes, dia } = partesData(item.data);
+        if (mes < 1 || mes > 12 || dia < 1 || dia > ultimoDia(ano, mes)) {
+          return { erro: "O backup tem uma data inválida." };
+        }
+        if (!TIPOS.includes(item.tipo)) return { erro: "O backup tem um tipo inválido." };
+        if (typeof item.valor !== "number" || !Number.isFinite(item.valor) || item.valor < 0 || item.valor > 1000000000) {
+          return { erro: "O backup tem um valor negativo ou inválido." };
+        }
+        if (item.descricao !== undefined && typeof item.descricao !== "string") {
+          return { erro: "O backup tem uma descrição inválida." };
+        }
+        const descricao = (item.descricao || "").trim().slice(0, 80);
+        let id = typeof item.id === "string" && item.id.trim() !== "" ? item.id : novoId(lancamentos.length);
+        if (ids.has(id)) id = novoId(lancamentos.length);
+        ids.add(id);
+        lancamentos.push({
+          id,
+          data: item.data,
+          tipo: item.tipo,
+          valor: centavos(item.valor),
+          descricao
+        });
+      }
+      return { estado: { lancamentos, ajustes } };
+    }
+
+    function lerMesesValidos(lista) {
+      if (!Array.isArray(lista)) return null;
+      const vistos = new Set();
+      for (const item of lista) {
+        if (!Number.isInteger(item) || item < 1 || item > 12 || vistos.has(item)) return null;
+        vistos.add(item);
+      }
+      return [...vistos].sort((a, b) => a - b);
+    }
+
+    function novoId(indice) {
+      return `${Date.now().toString(36)}-${indice}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function lancamentosDoMes(anoMes) {
+      return estado.lancamentos.filter(item => item.data.slice(0, 7) === anoMes);
+    }
+
+    /* null significa "sem lançamentos". Não é a mesma coisa que sobra zero. */
+    function calcularMes(anoMes) {
+      const itens = lancamentosDoMes(anoMes);
+      if (itens.length === 0) return null;
+      let entradas = 0;
+      let fixos = 0;
+      let variaveis = 0;
+      for (const item of itens) {
+        if (item.tipo === "entrada") entradas += item.valor;
+        else if (item.tipo === "fixo") fixos += item.valor;
+        else variaveis += item.valor;
+      }
+      entradas = centavos(entradas);
+      fixos = centavos(fixos);
+      variaveis = centavos(variaveis);
+      return {
+        entradas,
+        fixos,
+        variaveis,
+        sobra: centavos(entradas - fixos - variaveis)
+      };
+    }
+
+    function podeInvestir(sobra) {
+      return centavos(Math.max(0, sobra - estado.ajustes.reserva));
+    }
+
+    function mesesComDados() {
+      const conjunto = new Set();
+      for (const item of estado.lancamentos) conjunto.add(item.data.slice(0, 7));
+      return [...conjunto].sort();
+    }
+
+    function ehInverno(anoMes) {
+      return estado.ajustes.mesesInverno.includes(Number(anoMes.slice(5, 7)));
+    }
+
+    function mesesDaEstacao(inverno) {
+      return mesesComDados().filter(anoMes => ehInverno(anoMes) === inverno);
+    }
+
+    function mediaDe(meses, campo) {
+      if (meses.length === 0) return null;
+      let soma = 0;
+      for (const anoMes of meses) soma += calcularMes(anoMes)[campo];
+      return soma / meses.length;
+    }
+
+    function mediaHistorica(inverno) {
+      const meses = mesesDaEstacao(inverno);
+      return { media: mediaDe(meses, "entradas"), meses: meses.length };
+    }
+
+    function previsaoReceitaEstacao(inverno) {
+      const meses = mesesDaEstacao(inverno).slice(-3);
+      return { media: mediaDe(meses, "entradas"), meses: meses.length };
+    }
+
+    function mediaCustosVariaveis() {
+      const meses = mesesComDados();
+      return { media: mediaDe(meses, "variaveis"), meses: meses.length };
+    }
+
+    function receitaNecessaria() {
+      const nInverno = estado.ajustes.mesesInverno.length;
+      const fora = 12 - nInverno;
+      if (fora === 0) {
+        return {
+          codigo: "divisor-zero",
+          erro: "Todos os meses estão marcados como inverno. O divisor seria zero, então a receita fora do inverno não é calculada."
+        };
+      }
+      const historico = mediaHistorica(true);
+      if (nInverno > 0 && historico.media === null) {
+        return {
+          codigo: "sem-historico",
+          erro: "Ainda não há receita lançada nos meses de inverno. A média não vira zero, então a receita necessária não é calculada."
+        };
+      }
+      const media = historico.media === null ? 0 : historico.media;
+      const salario = estado.ajustes.salarioAlvo;
+      const resultado = (salario * 12 - media * nInverno) / fora;
+      return { resultado, media, nInverno, fora, salario };
+    }
+
+    function parcelasArredondadas(total, quantidade) {
+      const base = centavos(total / quantidade);
+      const valores = Array(quantidade).fill(base);
+      const diferenca = centavos(total - centavos(base * quantidade));
+      valores[quantidade - 1] = centavos(valores[quantidade - 1] + diferenca);
+      return valores;
+    }
+
+    function simularCompra(anoMes, total, parcelas) {
+      if (!Number.isInteger(parcelas) || parcelas < 1) {
+        return { erro: "Não dá para dividir as parcelas." };
+      }
+      const valores = parcelasArredondadas(total, parcelas);
+      const parcela = valores[0];
+      const base = calcularMes(anoMes);
+      if (!base) {
+        return {
+          semBase: true,
+          parcela,
+          valores
+        };
+      }
+      const novaSobra = centavos(base.sobra - parcela);
+      return {
+        parcela,
+        valores,
+        sobra: base.sobra,
+        novaSobra,
+        pode: podeInvestir(novaSobra)
+      };
+    }
+
+    function simularSaida(anoMes, alunos) {
+      const base = calcularMes(anoMes);
+      if (!base) {
+        return { erro: "Este mês não tem lançamentos. A saída não é calculada em cima de zero." };
+      }
+      const perda = centavos(alunos * estado.ajustes.valorAluno);
+      const novaSobra = centavos(base.sobra - perda);
+      const corte = centavos((estado.ajustes.reserva + estado.ajustes.metaInvestimento) - novaSobra);
+      const variaveis = mediaCustosVariaveis();
+      return {
+        perda,
+        novaSobra,
+        corte,
+        pode: podeInvestir(novaSobra),
+        sobra: base.sobra,
+        media: variaveis.media,
+        mesesMedia: variaveis.meses
+      };
+    }
+
+    function mesesVaziosEntreLancamentos() {
+      const meses = mesesComDados();
+      if (meses.length === 0) return [];
+      const conjunto = new Set(meses);
+      const fim = meses[meses.length - 1];
+      let { ano, mes } = partesAnoMes(meses[0]);
+      const vazios = [];
+      for (let i = 0; i < 600; i += 1) {
+        const chave = chaveMes(ano, mes);
+        if (chave > fim) break;
+        if (!conjunto.has(chave)) vazios.push(chave);
+        const proximo = deslocarMes(ano, mes, 1);
+        ano = proximo.ano;
+        mes = proximo.mes;
+      }
+      return vazios;
+    }
+
+    function elemento(tag, atributos, texto) {
+      const no = document.createElement(tag);
+      if (atributos) {
+        for (const [chave, valor] of Object.entries(atributos)) {
+          if (chave === "class") no.className = valor;
+          else no.setAttribute(chave, valor);
+        }
+      }
+      if (texto !== undefined) no.textContent = texto;
+      return no;
+    }
+
+    function mostrarAviso(id, texto, tipo) {
+      const alvo = document.getElementById(id);
+      alvo.hidden = texto === "";
+      alvo.textContent = texto;
+      alvo.className = tipo === "ok" ? "aviso ok" : "aviso";
+    }
+
+    function linhaConta(rotulo, valor, id, extra) {
+      const linha = elemento("p", { class: "conta" });
+      linha.append(elemento("span", null, rotulo));
+      const forte = elemento("strong", { id }, formatarMoeda(valor));
+      forte.dataset.valor = String(centavos(valor));
+      if (valor < 0) forte.className = "negativo";
+      if (extra) {
+        for (const [chave, item] of Object.entries(extra)) forte.dataset[chave] = String(item);
+      }
+      linha.append(forte);
+      return linha;
+    }
+
+    function formula(texto, id) {
+      return elemento("p", { class: "formula", id }, texto);
+    }
+
+    function textoMeses(quantidade) {
+      return quantidade === 1 ? "1 mês" : `${quantidade} meses`;
+    }
+
+    function rotuloTipo(tipo) {
+      if (tipo === "entrada") return "Entrada";
+      if (tipo === "fixo") return "Custo fixo";
+      return "Custo variável";
+    }
+
+    function mostrarAba(nome) {
+      for (const aba of ABAS) {
+        const painel = document.getElementById(`painel-${aba}`);
+        const botao = document.getElementById(`aba-${aba}`);
+        const ativa = aba === nome;
+        painel.hidden = !ativa;
+        botao.classList.toggle("ativa", ativa);
+        botao.setAttribute("aria-selected", ativa ? "true" : "false");
+      }
+    }
+
+    function renderResumo() {
+      const caixa = document.getElementById("resumo-conteudo");
+      caixa.replaceChildren();
+      const mes = calcularMes(mesVisivel);
+      if (!mes) {
+        caixa.append(elemento(
+          "p",
+          { id: "resumo-vazio" },
+          "Este mês não tem lançamentos. Ele não entra nas médias e a sobra não é tratada como zero."
+        ));
+        const previa = previsaoReceitaEstacao(ehInverno(mesVisivel));
+        if (previa.media !== null) {
+          caixa.append(linhaConta("Previsão de receita da estação", previa.media, "previsao-receita", { meses: previa.meses }));
+          caixa.append(formula(
+            `Média de ${textoMeses(previa.meses)} com dados nesta estação, no máximo os 3 mais recentes.`,
+            "formula-previsao"
+          ));
+        }
+        return;
+      }
+      caixa.append(linhaConta("Entradas", mes.entradas, "entradas"));
+      caixa.append(linhaConta("Custos fixos", mes.fixos, "fixos"));
+      caixa.append(linhaConta("Custos variáveis", mes.variaveis, "variaveis"));
+      const sobra = linhaConta("Sobra do mês", mes.sobra, "sobra");
+      sobra.classList.add("destaque");
+      caixa.append(sobra);
+      caixa.append(formula(
+        `${formatarMoeda(mes.entradas)} − ${formatarMoeda(mes.fixos)} − ${formatarMoeda(mes.variaveis)} = ${formatarMoeda(mes.sobra)}`,
+        "formula-sobra"
+      ));
+      caixa.append(linhaConta("Reserva mensal", estado.ajustes.reserva, "reserva"));
+      const pode = podeInvestir(mes.sobra);
+      const linhaPode = linhaConta("Pode investir", pode, "pode-investir");
+      linhaPode.classList.add("destaque");
+      caixa.append(linhaPode);
+      caixa.append(formula(
+        `max(0, ${formatarMoeda(mes.sobra)} − ${formatarMoeda(estado.ajustes.reserva)}) = ${formatarMoeda(pode)}`,
+        "formula-pode"
+      ));
+    }
+
+    function renderLista() {
+      const caixa = document.getElementById("lista-lancamentos");
+      caixa.replaceChildren();
+      const itens = lancamentosDoMes(mesVisivel);
+      if (itens.length === 0) {
+        caixa.append(elemento("p", { id: "lista-vazia" }, "Este mês não tem lançamentos."));
+        return;
+      }
+      for (const item of itens) {
+        const bloco = elemento("div", { class: "item" });
+        const texto = item.descricao
+          ? `${dataBR(item.data)} · ${rotuloTipo(item.tipo)} · ${item.descricao}`
+          : `${dataBR(item.data)} · ${rotuloTipo(item.tipo)}`;
+        bloco.append(elemento("p", null, texto));
+        bloco.append(elemento("p", null, formatarMoeda(item.valor)));
+        const botao = elemento("button", { type: "button", class: "perigo" }, "Excluir");
+        botao.addEventListener("click", () => {
+          if (!window.confirm("Excluir este lançamento?")) return;
+          estado.lancamentos = estado.lancamentos.filter(atual => atual.id !== item.id);
+          salvar();
+          atualizar();
+        });
+        bloco.append(botao);
+        caixa.append(bloco);
+      }
+    }
+
+    function blocoMedia(rotulo, info, id) {
+      if (info.media === null) {
+        const aviso = elemento("p", { id }, `${rotulo}: sem meses com dados. A média não é zero.`);
+        aviso.dataset.erro = "sem-dados";
+        return aviso;
+      }
+      const linha = linhaConta(`${rotulo} (${textoMeses(info.meses)})`, info.media, id, { meses: info.meses });
+      return linha;
+    }
+
+    function renderSazonal() {
+      const caixa = document.getElementById("sazonal-conteudo");
+      caixa.replaceChildren();
+      const nomes = estado.ajustes.mesesInverno.map(mes => NOMES_MES[mes - 1]);
+      const textoInverno = nomes.length === 0
+        ? "Nenhum mês está marcado como inverno."
+        : `Inverno: ${nomes.join(", ")}. São ${textoMeses(nomes.length)}.`;
+      caixa.append(elemento("p", { id: "rotulo-inverno" }, textoInverno));
+
+      caixa.append(elemento("h3", null, "Médias do histórico"));
+      caixa.append(blocoMedia("Receita no inverno", mediaHistorica(true), "media-inverno"));
+      caixa.append(blocoMedia("Receita fora do inverno", mediaHistorica(false), "media-fora"));
+      caixa.append(formula(
+        "Estas médias usam todos os meses com lançamento da estação. Mês vazio fica de fora.",
+        "nota-historico"
+      ));
+
+      caixa.append(elemento("h3", null, "Previsão"));
+      caixa.append(blocoMedia("Previsão no inverno", previsaoReceitaEstacao(true), "previsao-inverno"));
+      caixa.append(blocoMedia("Previsão fora do inverno", previsaoReceitaEstacao(false), "previsao-fora"));
+      caixa.append(formula(
+        "A previsão é a média dos últimos 3 meses com dados da estação. A receita necessária, abaixo, usa a média do histórico inteiro.",
+        "nota-previsao"
+      ));
+
+      caixa.append(elemento("h3", null, "Receita necessária fora do inverno"));
+      const conta = receitaNecessaria();
+      if (conta.erro) {
+        const aviso = elemento("p", { id: "receita-necessaria" }, conta.erro);
+        aviso.dataset.erro = conta.codigo;
+        caixa.append(aviso);
+      } else {
+        const resultado = centavos(conta.resultado);
+        caixa.append(linhaConta("Receita necessária por mês", resultado, "receita-necessaria"));
+        caixa.append(formula(
+          `(${formatarMoeda(conta.salario)} × 12 − ${formatarMoeda(conta.media)} × ${conta.nInverno}) / ${conta.fora} = ${formatarMoeda(resultado)}`,
+          "formula-receita"
+        ));
+        if (resultado <= 0) {
+          caixa.append(formula(
+            "O resultado não é positivo. A receita de inverno já cobre o salário-alvo no ano, ou o salário-alvo está zerado.",
+            "nota-receita"
+          ));
+        }
+      }
+
+      caixa.append(elemento("h3", null, "Meses sem dados"));
+      const vazios = mesesVaziosEntreLancamentos();
+      let textoVazios = "Ainda não há lançamentos. Nenhum mês vazio é tratado como zero.";
+      if (mesesComDados().length > 0 && vazios.length === 0) {
+        textoVazios = "Não há meses vazios entre o primeiro e o último lançamento.";
+      } else if (vazios.length > 0) {
+        textoVazios = `Meses sem lançamentos, fora das médias: ${vazios.map(rotuloMes).join(", ")}.`;
+      }
+      const avisoVazios = elemento("p", { id: "meses-vazios" }, textoVazios);
+      avisoVazios.dataset.quantidade = String(vazios.length);
+      caixa.append(avisoVazios);
+    }
+
+    function renderCompra() {
+      const caixa = document.getElementById("resultado-compra");
+      caixa.replaceChildren();
+      if (!compraAtual) return;
+      const sim = simularCompra(mesVisivel, compraAtual.total, compraAtual.parcelas);
+      if (sim.erro) {
+        caixa.append(elemento("p", { id: "compra-erro" }, sim.erro));
+        return;
+      }
+      caixa.append(linhaConta("Valor da parcela", sim.parcela, "sim-parcela"));
+      caixa.append(formula(
+        `${formatarMoeda(compraAtual.total)} / ${compraAtual.parcelas} = ${formatarMoeda(sim.parcela)}`,
+        "formula-parcela"
+      ));
+      const ultima = sim.valores[sim.valores.length - 1];
+      if (ultima !== sim.parcela) {
+        caixa.append(formula(`A última parcela fica ${formatarMoeda(ultima)} por causa dos centavos.`, "nota-centavos"));
+      }
+      if (sim.semBase) {
+        caixa.append(elemento(
+          "p",
+          { id: "compra-sem-base" },
+          "Este mês não tem lançamentos. A parcela está calculada, mas a sobra não é refeita a partir de zero."
+        ));
+        return;
+      }
+      caixa.append(linhaConta("Nova sobra", sim.novaSobra, "sim-sobra"));
+      caixa.append(formula(
+        `${formatarMoeda(sim.sobra)} − ${formatarMoeda(sim.parcela)} = ${formatarMoeda(sim.novaSobra)}`,
+        "formula-sobra-compra"
+      ));
+      const linhaPode = linhaConta("Pode investir", sim.pode, "sim-pode");
+      linhaPode.classList.add("destaque");
+      caixa.append(linhaPode);
+      caixa.append(formula(
+        `max(0, ${formatarMoeda(sim.novaSobra)} − ${formatarMoeda(estado.ajustes.reserva)}) = ${formatarMoeda(sim.pode)}`,
+        "formula-pode-compra"
+      ));
+    }
+
+    function textoComparacao(corte, media) {
+      if (media === null) {
+        return {
+          situacao: "sem-media",
+          texto: "Não há média de custos variáveis. A comparação não divide por zero."
+        };
+      }
+      if (corte <= 0) {
+        return {
+          situacao: "folga",
+          texto: `Não é preciso cortar custos. A nova sobra cobre a reserva e a meta, com folga de ${formatarMoeda(Math.abs(corte))}. Os custos variáveis médios são ${formatarMoeda(media)}.`
+        };
+      }
+      if (corte <= media) {
+        return {
+          situacao: "cabe",
+          texto: `O corte necessário é ${formatarMoeda(corte)}. Ele cabe nos custos variáveis médios de ${formatarMoeda(media)}.`
+        };
+      }
+      const falta = centavos(corte - media);
+      return {
+        situacao: "insuficiente",
+        falta,
+        texto: `O corte necessário é ${formatarMoeda(corte)}, maior que os custos variáveis médios de ${formatarMoeda(media)}. Mesmo zerando os variáveis, ainda faltam ${formatarMoeda(falta)}.`
+      };
+    }
+
+    function renderSaida() {
+      const caixa = document.getElementById("resultado-saida");
+      caixa.replaceChildren();
+      if (!saidaAtual) return;
+      const sim = simularSaida(mesVisivel, saidaAtual.alunos);
+      if (sim.erro) {
+        caixa.append(elemento("p", { id: "saida-erro" }, sim.erro));
+        return;
+      }
+      if (estado.ajustes.valorAluno === 0) {
+        caixa.append(formula("O valor por aluno está zerado nos Ajustes. A perda sai zerada.", "nota-aluno-zero"));
+      }
+      caixa.append(linhaConta("Perda de receita", sim.perda, "sim-perda"));
+      caixa.append(formula(
+        `${saidaAtual.alunos} × ${formatarMoeda(estado.ajustes.valorAluno)} = ${formatarMoeda(sim.perda)}`,
+        "formula-perda"
+      ));
+      caixa.append(linhaConta("Nova sobra", sim.novaSobra, "sim-nova-sobra"));
+      caixa.append(formula(
+        `${formatarMoeda(sim.sobra)} − ${formatarMoeda(sim.perda)} = ${formatarMoeda(sim.novaSobra)}`,
+        "formula-nova-sobra"
+      ));
+      caixa.append(linhaConta("Pode investir", sim.pode, "sim-pode-saida"));
+      caixa.append(linhaConta("Corte necessário", sim.corte, "sim-corte"));
+      caixa.append(formula(
+        `(${formatarMoeda(estado.ajustes.reserva)} + ${formatarMoeda(estado.ajustes.metaInvestimento)}) − ${formatarMoeda(sim.novaSobra)} = ${formatarMoeda(sim.corte)}`,
+        "formula-corte"
+      ));
+      const comparacao = textoComparacao(sim.corte, sim.media);
+      const paragrafo = elemento("p", { id: "sim-comparacao" }, comparacao.texto);
+      paragrafo.dataset.situacao = comparacao.situacao;
+      if (sim.media !== null) paragrafo.dataset.media = String(centavos(sim.media));
+      if (comparacao.falta !== undefined) paragrafo.dataset.falta = String(comparacao.falta);
+      caixa.append(paragrafo);
+    }
+
+    function atualizar() {
+      document.getElementById("rotulo-mes").textContent = rotuloMes(mesVisivel);
+      renderResumo();
+      renderLista();
+      renderSazonal();
+      renderCompra();
+      renderSaida();
+    }
+
+    function lerMesesMarcados() {
+      return [...document.querySelectorAll("input[name=inverno]:checked")]
+        .map(campo => Number(campo.value))
+        .sort((a, b) => a - b);
+    }
+
+    function preencherAjustes() {
+      document.getElementById("reserva").value = numeroParaCampo(estado.ajustes.reserva);
+      document.getElementById("meta").value = numeroParaCampo(estado.ajustes.metaInvestimento);
+      document.getElementById("valor-aluno").value = numeroParaCampo(estado.ajustes.valorAluno);
+      document.getElementById("salario-alvo").value = numeroParaCampo(estado.ajustes.salarioAlvo);
+      document.querySelectorAll("input[name=inverno]").forEach(campo => {
+        campo.checked = estado.ajustes.mesesInverno.includes(Number(campo.value));
+      });
+    }
+
+    function ligarEventos() {
+      document.getElementById("mes-anterior").addEventListener("click", () => {
+        const atual = partesAnoMes(mesVisivel);
+        const novo = deslocarMes(atual.ano, atual.mes, -1);
+        mesVisivel = chaveMes(novo.ano, novo.mes);
+        atualizar();
+      });
+      document.getElementById("mes-proximo").addEventListener("click", () => {
+        const atual = partesAnoMes(mesVisivel);
+        const novo = deslocarMes(atual.ano, atual.mes, 1);
+        mesVisivel = chaveMes(novo.ano, novo.mes);
+        atualizar();
+      });
+      for (const aba of ABAS) {
+        document.getElementById(`aba-${aba}`).addEventListener("click", () => mostrarAba(aba));
+      }
+      document.getElementById("repetir").addEventListener("change", () => {
+        document.getElementById("bloco-repetir").hidden = !document.getElementById("repetir").checked;
+      });
+      document.getElementById("form-lancar").addEventListener("submit", aoLancar);
+      document.getElementById("form-compra").addEventListener("submit", aoSimularCompra);
+      document.getElementById("form-saida").addEventListener("submit", aoSimularSaida);
+      document.getElementById("form-ajustes").addEventListener("submit", aoSalvarAjustes);
+      document.getElementById("baixar-backup").addEventListener("click", baixarBackup);
+      document.getElementById("restaurar-backup").addEventListener("click", () => {
+        document.getElementById("arquivo-backup").click();
+      });
+      document.getElementById("arquivo-backup").addEventListener("change", aoRestaurar);
+      document.getElementById("apagar-dados").addEventListener("click", aoApagar);
+    }
+
+    function aoLancar(evento) {
+      evento.preventDefault();
+      const data = lerData("data");
+      if (data.erro) {
+        mostrarAviso("aviso-lancar", data.erro, "erro");
+        return;
+      }
+      const tipo = document.getElementById("tipo").value;
+      if (!TIPOS.includes(tipo)) {
+        mostrarAviso("aviso-lancar", "Escolha o tipo do lançamento.", "erro");
+        return;
+      }
+      const valor = lerCampoNumero("valor");
+      if (valor.erro) {
+        mostrarAviso("aviso-lancar", valor.erro, "erro");
+        return;
+      }
+      const descricao = document.getElementById("descricao").value.trim().slice(0, 80);
+      let quantidade = 1;
+      if (document.getElementById("repetir").checked) {
+        const meses = interpretarInteiro(document.getElementById("meses-repetir").value, 1, 120);
+        const campo = document.getElementById("meses-repetir");
+        if (meses.erro) {
+          campo.setAttribute("aria-invalid", "true");
+          mostrarAviso("aviso-lancar", meses.erro, "erro");
+          return;
+        }
+        campo.removeAttribute("aria-invalid");
+        quantidade = meses.valor;
+      }
+      const datas = datasMensais(data.valor, quantidade);
+      datas.forEach((quando, indice) => {
+        estado.lancamentos.push({
+          id: novoId(indice),
+          data: quando,
+          tipo,
+          valor: valor.valor,
+          descricao
+        });
+      });
+      estado.lancamentos.sort((a, b) => a.data.localeCompare(b.data) || a.id.localeCompare(b.id));
+      salvar();
+      document.getElementById("valor").value = "";
+      document.getElementById("descricao").value = "";
+      const diaPedido = partesData(data.valor).dia;
+      const ajustadas = datas.filter(quando => partesData(quando).dia !== diaPedido);
+      let texto = quantidade === 1
+        ? "Lançamento guardado neste navegador."
+        : `Lançamento guardado em ${quantidade} meses.`;
+      if (ajustadas.length > 0) {
+        texto += ` O dia ${diaPedido} não existe em todos os meses. Para não pular o mês, estes ficaram no último dia: ${ajustadas.map(dataBR).join(", ")}.`;
+      }
+      mostrarAviso("aviso-lancar", texto, "ok");
+      atualizar();
+    }
+
+    function aoSimularCompra(evento) {
+      evento.preventDefault();
+      const total = lerCampoNumero("compra-valor");
+      if (total.erro) {
+        mostrarAviso("aviso-compra", total.erro, "erro");
+        compraAtual = null;
+        renderCompra();
+        return;
+      }
+      const parcelas = interpretarInteiro(document.getElementById("compra-parcelas").value, 1, 120);
+      const campo = document.getElementById("compra-parcelas");
+      if (parcelas.erro) {
+        campo.setAttribute("aria-invalid", "true");
+        mostrarAviso("aviso-compra", parcelas.erro, "erro");
+        compraAtual = null;
+        renderCompra();
+        return;
+      }
+      campo.removeAttribute("aria-invalid");
+      mostrarAviso("aviso-compra", "", "ok");
+      compraAtual = { total: total.valor, parcelas: parcelas.valor };
+      renderCompra();
+    }
+
+    function aoSimularSaida(evento) {
+      evento.preventDefault();
+      const alunos = interpretarInteiro(document.getElementById("saida-alunos").value, 1, 1000);
+      const campo = document.getElementById("saida-alunos");
+      if (alunos.erro) {
+        campo.setAttribute("aria-invalid", "true");
+        mostrarAviso("aviso-saida", alunos.erro, "erro");
+        saidaAtual = null;
+        renderSaida();
+        return;
+      }
+      campo.removeAttribute("aria-invalid");
+      mostrarAviso("aviso-saida", "", "ok");
+      saidaAtual = { alunos: alunos.valor };
+      renderSaida();
+    }
+
+    function aoSalvarAjustes(evento) {
+      evento.preventDefault();
+      const campos = [
+        ["reserva", "reserva"],
+        ["meta", "metaInvestimento"],
+        ["valor-aluno", "valorAluno"],
+        ["salario-alvo", "salarioAlvo"]
+      ];
+      const ajustes = { mesesInverno: lerMesesMarcados() };
+      let erro = "";
+      for (const [id, chave] of campos) {
+        const lido = lerCampoNumero(id);
+        if (lido.erro && !erro) erro = lido.erro;
+        else if (!lido.erro) ajustes[chave] = lido.valor;
+      }
+      if (erro) {
+        mostrarAviso("aviso-ajustes", erro, "erro");
+        return;
+      }
+      estado.ajustes = ajustes;
+      salvar();
+      mostrarAviso("aviso-ajustes", "Ajustes guardados neste navegador.", "ok");
+      atualizar();
+    }
+
+    function baixarBackup() {
+      const json = JSON.stringify(montarBackup(), null, 2);
+      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `backup-financas-${hojeISO()}.json`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      /* Revogar na hora cancela o download em alguns navegadores. */
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      mostrarAviso("aviso-ajustes", "Backup baixado. Ele não foi enviado para lugar nenhum.", "ok");
+    }
+
+    function aoRestaurar() {
+      const campo = document.getElementById("arquivo-backup");
+      const arquivo = campo.files && campo.files[0];
+      campo.value = "";
+      if (!arquivo) return;
+      const leitor = new FileReader();
+      leitor.onload = () => {
+        let dados;
+        try {
+          dados = JSON.parse(String(leitor.result));
+        } catch (erro) {
+          mostrarAviso("aviso-ajustes", "O arquivo não é um JSON válido.", "erro");
+          return;
+        }
+        const validado = validarBackup(dados);
+        if (validado.erro) {
+          mostrarAviso("aviso-ajustes", validado.erro, "erro");
+          return;
+        }
+        if (!window.confirm("Substituir os dados deste navegador pelo backup?")) return;
+        estado = validado.estado;
+        salvar();
+        compraAtual = null;
+        saidaAtual = null;
+        preencherAjustes();
+        atualizar();
+        mostrarAviso("aviso-ajustes", "Backup restaurado. Nada foi enviado para a internet.", "ok");
+      };
+      leitor.onerror = () => {
+        mostrarAviso("aviso-ajustes", "Não foi possível ler o arquivo.", "erro");
+      };
+      leitor.readAsText(arquivo);
+    }
+
+    function aoApagar() {
+      if (!window.confirm("Apagar todos os lançamentos e ajustes deste navegador? O arquivo de backup, se você já baixou, continua no computador.")) return;
+      estado = estadoInicial();
+      salvar();
+      compraAtual = null;
+      saidaAtual = null;
+      preencherAjustes();
+      atualizar();
+      mostrarAviso("aviso-ajustes", "Dados deste navegador apagados.", "ok");
+    }
+
+    function iniciar() {
+      estado = carregar();
+      mesVisivel = hojeISO().slice(0, 7);
+      document.getElementById("data").value = hojeISO();
+      ligarEventos();
+      preencherAjustes();
+      mostrarAba("resumo");
+      atualizar();
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>

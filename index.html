@@ -2,14 +2,30 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b5f5a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Finanças">
   <title>Controle financeiro</title>
   <style>
     /* Mobile primeiro: a tela de referência tem 360px de largura.
        Botões e abas têm pelo menos 44px de altura para o toque. */
     *, *::before, *::after { box-sizing: border-box; }
     [hidden] { display: none !important; }
+    /* O seletor de arquivo não pode usar display:none: no iPhone o
+       toque em Restaurar backup não abre a lista de arquivos. */
+    .arquivo-oculto {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
     html, body { margin: 0; }
     body {
       font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -21,7 +37,7 @@
     .pagina {
       width: min(720px, 100%);
       margin: 0 auto;
-      padding: 12px 12px 28px;
+      padding: calc(12px + env(safe-area-inset-top)) 12px calc(28px + env(safe-area-inset-bottom));
     }
     h1, h2, h3, p { overflow-wrap: break-word; }
     h1 { margin: 0 0 4px; font-size: 1.45rem; }
@@ -287,9 +303,9 @@
           <button type="button" id="baixar-backup">Baixar backup</button>
           <button type="button" id="restaurar-backup" class="secundario">Restaurar backup</button>
           <button type="button" id="apagar-dados" class="perigo">Apagar dados deste navegador</button>
-          <input id="arquivo-backup" type="file" accept="application/json,.json" hidden>
+          <input id="arquivo-backup" class="arquivo-oculto" type="file" accept="application/json,.json,text/plain,*/*">
         </div>
-        <p class="formula">O backup é um arquivo JSON neste computador. O site não envia esses dados. Para guardar o arquivo no GitHub, use outro repositório, privado, sem ligar os dois.</p>
+        <p class="formula">No celular, abra este mesmo endereço no navegador. Cada aparelho guarda os próprios números. Para levar os lançamentos, guarde o backup aqui e restaure no outro aparelho. O site não envia esses dados. Se for guardar o arquivo no GitHub, use outro repositório, privado, sem ligar os dois.</p>
       </section>
     </main>
   </div>
@@ -1253,19 +1269,32 @@
       atualizar();
     }
 
-    function baixarBackup() {
+    /* No iPhone, o link de download muitas vezes não grava o arquivo.
+       A folha de compartilhar deixa a pessoa salvar nos Arquivos.
+       No computador, segue o download. O arquivo não sai do aparelho. */
+    async function baixarBackup() {
+      const nome = `backup-financas-${hojeISO()}.json`;
       const json = JSON.stringify(montarBackup(), null, 2);
-      const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
+      const arquivo = new File([json], nome, { type: "application/json" });
+      const podeCompartilhar = navigator.canShare && navigator.canShare({ files: [arquivo] });
+      if (podeCompartilhar) {
+        try {
+          await navigator.share({ files: [arquivo], title: "Backup financeiro" });
+          mostrarAviso("aviso-ajustes", "Escolha onde guardar o arquivo neste aparelho. Ele não foi enviado para o site.", "ok");
+          return;
+        } catch (erro) {
+          if (erro && erro.name === "AbortError") return;
+        }
+      }
+      const url = URL.createObjectURL(arquivo);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `backup-financas-${hojeISO()}.json`;
+      link.download = nome;
       document.body.append(link);
       link.click();
       link.remove();
-      /* Revogar na hora cancela o download em alguns navegadores. */
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      mostrarAviso("aviso-ajustes", "Backup baixado. Ele não foi enviado para lugar nenhum.", "ok");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      mostrarAviso("aviso-ajustes", "Backup guardado neste aparelho. Ele não foi enviado para o site.", "ok");
     }
 
     function aoRestaurar() {
